@@ -1,5 +1,3 @@
-# python3
-
 class Query:
     def __init__(self, query):
         self.type = query[0]
@@ -7,41 +5,59 @@ class Query:
         if self.type == 'add':
             self.name = query[2]
 
+class HashTable:
+    def __init__(self, size):
+        self.size = size
+        self.table = [[] for _ in range(self.size)]
+        self.prime = 10000001
+        
+    def _hash_func(self, key):
+        hashed = 0
+        for ch in key:
+            hashed = (hashed * 263 + ord(ch)) % self.prime
+        return hashed % self.size
+        
+    def add(self, key, value):
+        hashed = self._hash_func(str(key))
+        for i, (k, v) in enumerate(self.table[hashed]):
+            if k == key:
+                self.table[hashed][i] = (key, value)
+                return
+        self.table[hashed].append((key, value))
+        
+    def remove(self, key):
+        hashed = self._hash_func(str(key))
+        for i, (k, v) in enumerate(self.table[hashed]):
+            if k == key:
+                del self.table[hashed][i]
+                return
+        
+    def find(self, key):
+        hashed = self._hash_func(str(key))
+        for k, v in self.table[hashed]:
+            if k == key:
+                return v
+        return None
+
+
 def read_queries():
     n = int(input())
-    return [Query(input().split()) for i in range(n)]
+    return [Query(str(input()).split()) for i in range(n)]
 
 def write_responses(result):
-    print('\n'.join(result))
+    print('\n'.join(str(r) if r is not None else "not found" for r in result))
 
 def process_queries(queries):
     result = []
-    # Keep list of all existing (i.e. not deleted yet) contacts.
-    contacts = []
-    for cur_query in queries:
-        if cur_query.type == 'add':
-            # if we already have contact with such number,
-            # we should rewrite contact's name
-            for contact in contacts:
-                if contact.number == cur_query.number:
-                    contact.name = cur_query.name
-                    break
-            else: # otherwise, just add it
-                contacts.append(cur_query)
-        elif cur_query.type == 'del':
-            for j in range(len(contacts)):
-                if contacts[j].number == cur_query.number:
-                    contacts.pop(j)
-                    break
+    contacts = HashTable(100000)
+    for query in queries:
+        if query.type == 'add':
+            contacts.add(query.number, query.name)
+        elif query.type == 'del':
+            contacts.remove(query.number)
         else:
-            response = 'not found'
-            for contact in contacts:
-                if contact.number == cur_query.number:
-                    response = contact.name
-                    break
-            result.append(response)
+            result.append(contacts.find(query.number))
     return result
 
 if __name__ == '__main__':
     write_responses(process_queries(read_queries()))
-
